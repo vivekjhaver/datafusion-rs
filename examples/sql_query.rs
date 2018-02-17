@@ -12,29 +12,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-extern crate datafusion;
-use datafusion::exec::*;
+//extern crate datafusion;
+//use datafusion::exec::*;
 
 /// This example shows the steps to parse, plan, and execute simple SQL in the current process
 fn main() {
 
-    // create execution context
-    let mut ctx = ExecutionContext::new("./test/data".to_string());
-
-    // define an external table (csv file)
-    ctx.sql("CREATE EXTERNAL TABLE uk_cities (\
-        city VARCHAR(100), \
-        lat DOUBLE, \
-        lng DOUBLE)").unwrap();
-
-    // define the SQL statement
-    let sql = "SELECT ST_AsText(ST_Point(lat, lng)) FROM uk_cities WHERE lat < 53";
-
-    // create a data frame
-    let df1 = ctx.sql(&sql).unwrap();
-
-    // write the results to a file
-    df1.write("_southern_cities.csv").unwrap();
+//    // create execution context
+//    let mut ctx = ExecutionContext::new("./test/data".to_string());
+//
+//    // define an external table (csv file)
+//    ctx.sql("CREATE EXTERNAL TABLE uk_cities (\
+//        city VARCHAR(100), \
+//        lat DOUBLE, \
+//        lng DOUBLE)").unwrap();
+//
+//    // define the SQL statement
+//    let sql = "SELECT ST_AsText(ST_Point(lat, lng)) FROM uk_cities WHERE lat < 53";
+//
+//    // create a data frame
+//    let df1 = ctx.sql(&sql).unwrap();
+//
+//    // write the results to a file
+//    df1.write("_southern_cities.csv").unwrap();
 
 
 }
