@@ -115,6 +115,11 @@ impl Row {
     }
 }
 
+/// Marker trait for the values
+//trait Value: Clone + Debug {}
+//
+//impl Value for f64 {}
+//impl<'a> Value for Str<'a> {}
 
 /// Value holder for all supported data types
 #[derive(Debug,Clone,PartialEq,Serialize,Deserialize)]

@@ -481,6 +481,53 @@ impl ExecutionContext {
 
 }
 
+type CompiledExpr =  Box<Fn(&Row)-> Result<Value, Box<ExecutionError>>>;
+
+pub fn compile_expr(expr: Expr) -> CompiledExpr {
+    match expr {
+        Expr::Literal(value) => {
+            Box::new(move |&_| Ok(value.clone()))
+        },
+        _ => unimplemented!()
+    }
+}
+
+/*
+match expr {
+&Expr::BinaryExpr { ref left, ref op, ref right } => {
+    let left_value = self.evaluate(row, schema, left)?;
+    let right_value = self.evaluate(row, schema, right)?;
+    match op {
+        &Operator::Eq => Ok(Value::Boolean(left_value == right_value)),
+        &Operator::NotEq => Ok(Value::Boolean(left_value != right_value)),
+        &Operator::Lt => Ok(Value::Boolean(left_value < right_value)),
+        &Operator::LtEq => Ok(Value::Boolean(left_value <= right_value)),
+        &Operator::Gt => Ok(Value::Boolean(left_value > right_value)),
+        &Operator::GtEq => Ok(Value::Boolean(left_value >= right_value)),
+    }
+},
+&Expr::TupleValue(index) => Ok(row.values[index].clone()),
+&Expr::Literal(ref value) => Ok(value.clone()),
+&Expr::Sort { ref expr, .. } => self.evaluate(row, schema, expr),
+&Expr::ScalarFunction { ref name, ref args } => {
+
+    // evaluate the arguments to the function
+    let arg_values : Vec<Value> = args.iter()
+        .map(|a| self.evaluate(row, schema, &a))
+        .collect::<Result<Vec<Value>, Box<ExecutionError>>>()?;
+
+    let func = self.load_function_impl(name.as_ref())?;
+
+    match func.execute(arg_values) {
+        Ok(value) => Ok(value),
+        Err(e) => Err(Box::new(ExecutionError::Custom(
+            format!("Function returned error {:?}", e))))
+    }
+}
+}
+
+*/
+
 
 
 
@@ -569,6 +616,18 @@ impl DataFrame for DF {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn test_compiler() {
+
+        let lit_fn_1 = compile_expr(Expr::Literal(Value::UnsignedLong(1234)));
+        let lit_fn_2 = compile_expr(Expr::Literal(Value::UnsignedLong(4321)));
+
+        let row = Row::new(vec![]);
+
+        assert_eq!(Value::UnsignedLong(1234), lit_fn_1(&row).unwrap());
+        assert_eq!(Value::UnsignedLong(4321), lit_fn_2(&row).unwrap());
+    }
 
     #[test]
     fn test_sqrt() {
