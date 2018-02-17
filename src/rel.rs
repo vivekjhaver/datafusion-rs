@@ -187,6 +187,7 @@ pub enum Operator {
     LtEq,
     Gt,
     GtEq,
+    Plus
 }
 
 /// Relation Expression
@@ -197,7 +198,7 @@ pub enum Expr {
     /// literal value
     Literal(Value),
     /// binary expression e.g. "age > 21"
-    BinaryExpr { left: Box<Expr>, op: Operator, right: Box<Expr> },
+    Binary { left: Box<Expr>, op: Operator, right: Box<Expr> },
     /// sort expression
     Sort { expr: Box<Expr>, asc: bool },
     /// scalar function
@@ -207,7 +208,7 @@ pub enum Expr {
 impl Expr {
 
     pub fn eq(&self, other: &Expr) -> Expr {
-        Expr::BinaryExpr {
+        Expr::Binary {
             left: Box::new(self.clone()),
             op: Operator::Eq,
             right: Box::new(other.clone())
@@ -215,7 +216,7 @@ impl Expr {
     }
 
     pub fn gt(&self, other: &Expr) -> Expr {
-        Expr::BinaryExpr {
+        Expr::Binary {
             left: Box::new(self.clone()),
             op: Operator::Gt,
             right: Box::new(other.clone())
@@ -223,7 +224,7 @@ impl Expr {
     }
 
     pub fn lt(&self, other: &Expr) -> Expr {
-        Expr::BinaryExpr {
+        Expr::Binary {
             left: Box::new(self.clone()),
             op: Operator::Lt,
             right: Box::new(other.clone())
@@ -280,7 +281,7 @@ mod tests {
 
         let csv = CsvFile { filename: "test/data/people.csv".to_string(), schema: tt.clone() };
 
-        let filter_expr = BinaryExpr {
+        let filter_expr = Binary {
             left: Box::new(TupleValue(0)),
             op: Operator::Eq,
             right: Box::new(Literal(UnsignedLong(2)))

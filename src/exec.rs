@@ -427,7 +427,7 @@ impl ExecutionContext {
     /// Evaluate a relational expression against a tuple
     pub fn evaluate(&self, row: &Row, schema: &Schema, expr: &Expr) -> Result<Value, Box<ExecutionError>> {
         match expr {
-            &Expr::BinaryExpr { ref left, ref op, ref right } => {
+            &Expr::Binary { ref left, ref op, ref right } => {
                 let left_value = self.evaluate(row, schema, left)?;
                 let right_value = self.evaluate(row, schema, right)?;
                 match op {
@@ -437,6 +437,7 @@ impl ExecutionContext {
                     &Operator::LtEq => Ok(Value::Boolean(left_value <= right_value)),
                     &Operator::Gt => Ok(Value::Boolean(left_value > right_value)),
                     &Operator::GtEq => Ok(Value::Boolean(left_value >= right_value)),
+                    _ => unimplemented!()
                 }
             },
             &Expr::TupleValue(index) => Ok(row.values[index].clone()),
@@ -483,11 +484,30 @@ impl ExecutionContext {
 
 type CompiledExpr =  Box<Fn(&Row)-> Result<Value, Box<ExecutionError>>>;
 
-pub fn compile_expr(expr: Expr) -> CompiledExpr {
+//TODO: this ugliness is needed until Value becomes a trait
+fn add(a: Value, b: Value) -> Value {
+    match a {
+        Value::UnsignedLong(aa) => match b {
+            Value::UnsignedLong(bb) => Value::UnsignedLong(aa+bb),
+            _ => unimplemented!()
+        },
+        _ => unimplemented!()
+    }
+}
+
+pub fn compile_expr(expr: Expr) -> Result<CompiledExpr, Box<ExecutionError>> {
     match expr {
         Expr::Literal(value) => {
-            Box::new(move |&_| Ok(value.clone()))
+            Ok(Box::new(move |&_| Ok(value.clone())))
         },
+        Expr::Binary { ref left, ref op, ref right } => {
+            let l = compile_expr(left.as_ref().clone())?;
+            let r = compile_expr(right.as_ref().clone())?;
+            match op {
+                &Operator::Plus => Ok(Box::new(move |ref row| Ok(add(l(&row)?, r(&row)?)))),
+                _ => unimplemented!()
+            }
+        }
         _ => unimplemented!()
     }
 }
@@ -618,15 +638,31 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_compiler() {
+    fn test_compile_literal_expr() {
 
-        let lit_fn_1 = compile_expr(Expr::Literal(Value::UnsignedLong(1234)));
-        let lit_fn_2 = compile_expr(Expr::Literal(Value::UnsignedLong(4321)));
+        let lit_fn_1 = compile_expr(Expr::Literal(Value::UnsignedLong(1234))).unwrap();
+        let lit_fn_2 = compile_expr(Expr::Literal(Value::UnsignedLong(4321))).unwrap();
 
         let row = Row::new(vec![]);
 
         assert_eq!(Value::UnsignedLong(1234), lit_fn_1(&row).unwrap());
         assert_eq!(Value::UnsignedLong(4321), lit_fn_2(&row).unwrap());
+    }
+
+    #[test]
+    fn test_compile_binary_expr() {
+
+        let expr = Expr::Binary {
+            left: Box::new(Expr::Literal(Value::UnsignedLong(1234))),
+            op: Operator::Plus,
+            right: Box::new(Expr::Literal(Value::UnsignedLong(4321)))
+        };
+
+        let compiled_expr = compile_expr(expr).unwrap();
+
+        let row = Row::new(vec![]);
+
+        assert_eq!(Value::UnsignedLong(5555), compiled_expr(&row).unwrap());
     }
 
     #[test]

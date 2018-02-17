@@ -168,7 +168,7 @@ impl SqlToRel {
                     &SQLOperator::EQ => Operator::Eq,
                     _ => unimplemented!()
                 };
-                Ok(Expr::BinaryExpr {
+                Ok(Expr::Binary {
                     left: Box::new(self.sql_to_rex(&left, &schema)?),
                     op: operator,
                     right: Box::new(self.sql_to_rex(&right, &schema)?),
