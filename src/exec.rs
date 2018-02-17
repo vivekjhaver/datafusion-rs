@@ -68,10 +68,10 @@ pub struct CsvRelation {
     schema: Schema
 }
 
-pub struct FilterRelation {
+pub struct FilterRelation<'a> {
     schema: Schema,
     input: Box<SimpleRelation>,
-    expr: Expr
+    expr: &'a Expr
 }
 
 pub struct ProjectRelation {
@@ -143,7 +143,7 @@ impl SimpleRelation for CsvRelation {
 
 }
 
-impl SimpleRelation for FilterRelation {
+impl<'b> SimpleRelation for FilterRelation<'b> {
 
     fn scan<'a>(&'a self, ctx: &'a ExecutionContext) -> Box<Iterator<Item=Result<Row, ExecutionError>> + 'a> {
 //        Box::new(self.input.scan(ctx).filter(move|t|
@@ -213,15 +213,16 @@ impl SimpleRelation for ProjectRelation {
     fn scan<'a>(&'a self, ctx: &'a ExecutionContext) -> Box<Iterator<Item=Result<Row, ExecutionError>> + 'a> {
         let foo = self.input.scan(ctx).map(move|r| match r {
             Ok(tuple) => {
-                let values = self.expr.iter()
-                    .map(|e| match e {
-                        &Expr::TupleValue(i) => tuple.values[i].clone(),
-                        //TODO: relation delegating back to execution context seems wrong way around
-                        _ => ctx.evaluate(&tuple,&self.schema, e).unwrap() //TODO: remove unwrap
-                        //unimplemented!("Unsupported expression for projection")
-                    })
-                    .collect();
-                Ok(Row::new(values))
+//                let values = self.expr.iter()
+//                    .map(|e| match e {
+//                        &Expr::TupleValue(i) => tuple.values[i],
+//                        //TODO: relation delegating back to execution context seems wrong way around
+//                        _ => ctx.evaluate(&tuple,&self.schema, e).unwrap() //TODO: remove unwrap
+//                        //unimplemented!("Unsupported expression for projection")
+//                    })
+//                    .collect();
+//                Ok(Row::new(values))
+                unimplemented!()
             },
             Err(_) => r
         });
@@ -245,7 +246,7 @@ impl SimpleRelation for LimitRelation {
 }
 
 /// Execution plans are sent to worker nodes for execution
-#[derive(Debug,Clone)]
+#[derive(Debug)]
 pub enum ExecutionPlan {
     /// Run a query and return the results to the client
     Interactive { plan: Box<LogicalPlan> },
@@ -345,13 +346,13 @@ impl ExecutionContext {
     }
 
     pub fn create_execution_plan(&self, plan: &LogicalPlan) -> Result<Box<SimpleRelation>,ExecutionError> {
-        match *plan {
+        match plan {
 
-            LogicalPlan::EmptyRelation => {
+            &LogicalPlan::EmptyRelation => {
                 Err(ExecutionError::Custom(String::from("empty relation is not implemented yet")))
             },
 
-            LogicalPlan::TableScan { ref table_name, ref schema, .. } => {
+            &LogicalPlan::TableScan { ref table_name, ref schema, .. } => {
                 // for now, tables are csv files
                 let filename = format!("{}/{}.csv", self.data_dir, table_name);
                 println!("Reading {}", filename);
@@ -360,70 +361,72 @@ impl ExecutionContext {
                 Ok(Box::new(rel))
             },
 
-            LogicalPlan::CsvFile { ref filename, ref schema } => {
+            &LogicalPlan::CsvFile { ref filename, ref schema } => {
                 let file = File::open(filename)?;
                 let rel = CsvRelation::open(file, schema.clone())?;
                 Ok(Box::new(rel))
             },
 
-            LogicalPlan::Selection { ref expr, ref input, ref schema } => {
-                let input_rel = self.create_execution_plan(input)?;
-                let rel = FilterRelation {
-                    input: input_rel,
-                    expr: expr.clone(),
-                    schema: schema.clone()
-                };
-                Ok(Box::new(rel))
-            },
+//            &LogicalPlan::Selection { ref expr, ref input, ref schema } => {
+//                let input_rel = self.create_execution_plan(&input)?;
+//                let rel = FilterRelation {
+//                    input: input_rel,
+//                    expr: expr,
+//                    schema: schema.clone()
+//                };
+//                Ok(Box::new(rel))
+//            },
+//
+//            &LogicalPlan::Projection { ref expr, ref input, .. } => {
+//                let input_rel = self.create_execution_plan(&input)?;
+//                let input_schema = input_rel.schema().clone();
+//
+//                //TODO: seems to be duplicate of sql_to_rel code
+//                let project_columns: Vec<Field> = expr.iter().map(|e| {
+//                    match e {
+//                        &Expr::TupleValue(i) => input_schema.columns[i].clone(),
+//                        &Expr::ScalarFunction {ref name, .. } => Field {
+//                            name: name.clone(),
+//                            data_type: DataType::Double, //TODO: hard-coded .. no function metadata yet
+//                            nullable: true
+//                        },
+//                        _ => unimplemented!("Unsupported projection expression")
+//                    }
+//                }).collect();
+//
+//                let project_schema = Schema { columns: project_columns };
+//
+//                let rel = ProjectRelation {
+//                    input: input_rel,
+//                    expr: *expr,
+//                    schema: project_schema,
+//
+//                };
+//
+//                Ok(Box::new(rel))
+//            }
+//
+//            &LogicalPlan::Sort { ref expr, ref input, ref schema } => {
+//                let input_rel = self.create_execution_plan(input)?;
+//                let rel = SortRelation {
+//                    input: input_rel,
+//                    expr: *expr,
+//                    schema: schema.clone()
+//                };
+//                Ok(Box::new(rel))
+//            },
+//
+//            &LogicalPlan::Limit { limit, ref input, ref schema, .. } => {
+//                let input_rel = self.create_execution_plan(input)?;
+//                let rel = LimitRelation {
+//                    input: input_rel,
+//                    limit: limit,
+//                    schema: schema.clone()
+//                };
+//                Ok(Box::new(rel))
+//            }
 
-            LogicalPlan::Projection { ref expr, ref input, .. } => {
-                let input_rel = self.create_execution_plan(&input)?;
-                let input_schema = input_rel.schema().clone();
-
-                //TODO: seems to be duplicate of sql_to_rel code
-                let project_columns: Vec<Field> = expr.iter().map(|e| {
-                    match e {
-                        &Expr::TupleValue(i) => input_schema.columns[i].clone(),
-                        &Expr::ScalarFunction {ref name, .. } => Field {
-                            name: name.clone(),
-                            data_type: DataType::Double, //TODO: hard-coded .. no function metadata yet
-                            nullable: true
-                        },
-                        _ => unimplemented!("Unsupported projection expression")
-                    }
-                }).collect();
-
-                let project_schema = Schema { columns: project_columns };
-
-                let rel = ProjectRelation {
-                    input: input_rel,
-                    expr: expr.clone(),
-                    schema: project_schema,
-
-                };
-
-                Ok(Box::new(rel))
-            }
-
-            LogicalPlan::Sort { ref expr, ref input, ref schema } => {
-                let input_rel = self.create_execution_plan(input)?;
-                let rel = SortRelation {
-                    input: input_rel,
-                    expr: expr.clone(),
-                    schema: schema.clone()
-                };
-                Ok(Box::new(rel))
-            },
-
-            LogicalPlan::Limit { limit, ref input, ref schema, .. } => {
-                let input_rel = self.create_execution_plan(input)?;
-                let rel = LimitRelation {
-                    input: input_rel,
-                    limit: limit,
-                    schema: schema.clone()
-                };
-                Ok(Box::new(rel))
-            }
+            _ => unimplemented!()
         }
     }
 
@@ -481,21 +484,21 @@ impl ExecutionContext {
     }
 
     pub fn udf(&self, name: &str, args: Vec<Expr>) -> Expr {
-        Expr::ScalarFunction { name: name.to_string(), args: args.clone() }
+        Expr::ScalarFunction { name: name.to_string(), args: args }
     }
 
 }
 
 type CompiledExpr =  Box<Fn(&Row)-> Result<Box<Value>, Box<ExecutionError>>>;
 
-pub fn compile_expr(expr: Expr) -> Result<CompiledExpr, Box<ExecutionError>> {
+pub fn compile_expr(expr: &Expr) -> Result<CompiledExpr, Box<ExecutionError>> {
     match expr {
-        Expr::Literal(value) => {
-            Ok(Box::new(move |&_| Ok(value.clone())))
+        &Expr::Literal(ref value) => {
+            Ok(Box::new(move |&_| Ok(Box::new(value))))
         },
-        Expr::Binary { ref left, ref op, ref right } => {
-            let l = compile_expr(left.as_ref().clone())?;
-            let r = compile_expr(right.as_ref().clone())?;
+        &Expr::Binary { left, op, right } => {
+            let l = compile_expr(left.as_ref())?;
+            let r = compile_expr(right.as_ref())?;
             match op {
                 //&Operator::Eq => Ok(Box::new(move |ref row| Ok(l(&row)? == r(&row)?))),
                 _ => unimplemented!()
@@ -555,7 +558,7 @@ impl DataFrame for DF {
 
         let plan = LogicalPlan::Projection {
             expr: expr,
-            input: self.plan.clone(),
+            input: self.plan,
             schema: self.plan.schema().clone()
 
         };
@@ -568,7 +571,7 @@ impl DataFrame for DF {
 
         let plan = LogicalPlan::Sort {
             expr: expr,
-            input: self.plan.clone(),
+            input: self.plan,
             schema: self.plan.schema().clone()
 
         };
@@ -581,7 +584,7 @@ impl DataFrame for DF {
 
         let plan = LogicalPlan::Selection {
             expr: expr,
-            input: self.plan.clone(),
+            input: self.plan,
             schema: self.plan.schema().clone()
         };
 
@@ -633,10 +636,13 @@ mod tests {
     #[test]
     fn test_compile_literal_expr() {
 
-        let lit_fn_1 = compile_expr(Expr::Literal(Box::new(1234_u64))).unwrap();
-        let lit_fn_2 = compile_expr(Expr::Literal(Box::new(4321_u64))).unwrap();
+        let lit_fn_1 = compile_expr(&Expr::Literal(Box::new(1234_u64))).unwrap();
+        let lit_fn_2 = compile_expr(&Expr::Literal(Box::new(4321_u64))).unwrap();
 
         let row = Row::new(vec![]);
+
+        let value_1 = lit_fn_1(&row).unwrap();
+
 
         unimplemented!()
 //        assert_eq!(Box::new(1234_u64) as Box<Value>, lit_fn_1(&row).unwrap());
@@ -652,7 +658,7 @@ mod tests {
             right: Box::new(Expr::Literal(Box::new(4321_u64)))
         };
 
-        let compiled_expr = compile_expr(expr).unwrap();
+        let compiled_expr = compile_expr(&expr).unwrap();
 
         let row = Row::new(vec![]);
 

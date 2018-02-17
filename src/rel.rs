@@ -121,16 +121,18 @@ pub trait Value: Debug {
     //fn add(other: &Value)
     fn to_string(&self) -> String;
 }
-
-impl Clone for Box<Value> {
-    fn clone(&self) -> Self {
-        unimplemented!()
-    }
-
-    fn clone_from(&mut self, source: &Self) {
-        unimplemented!()
-    }
-}
+//
+//impl Clone for Box<Value> {
+//    fn clone(&self) -> Self {
+//        match self {
+//            ref
+//        }
+//    }
+//
+//    fn clone_from(&mut self, source: &Self) {
+//        unimplemented!()
+//    }
+//}
 //
 //impl Value for f64 {}
 //impl<'a> Value for Str<'a> {}
@@ -186,7 +188,7 @@ pub enum Operator {
 }
 
 /// Relation Expression
-#[derive(Debug,Clone)]
+#[derive(Debug)]
 pub enum Expr {
     /// index into a value within the tuple
     TupleValue(usize),
@@ -202,34 +204,34 @@ pub enum Expr {
 
 impl Expr {
 
-    pub fn eq(&self, other: &Expr) -> Expr {
+    pub fn eq(self, other: Expr) -> Expr {
         Expr::Binary {
-            left: Box::new(self.clone()),
+            left: Box::new(self),
             op: Operator::Eq,
-            right: Box::new(other.clone())
+            right: Box::new(other)
         }
     }
 
-    pub fn gt(&self, other: &Expr) -> Expr {
+    pub fn gt(self, other: Expr) -> Expr {
         Expr::Binary {
-            left: Box::new(self.clone()),
+            left: Box::new(self),
             op: Operator::Gt,
-            right: Box::new(other.clone())
+            right: Box::new(other)
         }
     }
 
-    pub fn lt(&self, other: &Expr) -> Expr {
+    pub fn lt(self, other: Expr) -> Expr {
         Expr::Binary {
-            left: Box::new(self.clone()),
+            left: Box::new(self),
             op: Operator::Lt,
-            right: Box::new(other.clone())
+            right: Box::new(other)
         }
     }
 
 }
 
 /// Relations
-#[derive(Debug,Clone)]
+#[derive(Debug)]
 pub enum LogicalPlan {
     Limit { limit: usize, input: Box<LogicalPlan>, schema: Schema },
     Projection { expr: Vec<Expr>, input: Box<LogicalPlan>, schema: Schema },
