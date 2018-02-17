@@ -103,11 +103,11 @@ impl<'a> CsvRelation {
         assert_eq!(self.schema.columns.len(), r.len());
         let values = self.schema.columns.iter().zip(r.into_iter()).map(|(c,s)| match c.data_type {
             //TODO: remove unwrap use here
-            DataType::UnsignedLong => Value::UnsignedLong(s.parse::<u64>().unwrap()),
-            DataType::String => Value::String(s.to_string()),
-            DataType::Double => Value::Double(s.parse::<f64>().unwrap()),
+            DataType::UnsignedLong => Box::new(s.parse::<u64>().unwrap()) as Box<Value>,
+            DataType::String => Box::new(s.to_string()) as Box<Value>,
+            DataType::Double => Box::new(s.parse::<f64>().unwrap()) as Box<Value>,
             _ => panic!("csv unsupported type")
-        }).collect();
+        }).collect::<Vec<Box<Value>>>();
         Ok(Row::new(values))
     }
 }
@@ -146,15 +146,16 @@ impl SimpleRelation for CsvRelation {
 impl SimpleRelation for FilterRelation {
 
     fn scan<'a>(&'a self, ctx: &'a ExecutionContext) -> Box<Iterator<Item=Result<Row, ExecutionError>> + 'a> {
-        Box::new(self.input.scan(ctx).filter(move|t|
-            match t {
-                &Ok(ref tuple) => match ctx.evaluate(tuple, &self.schema, &self.expr) {
-                    Ok(Value::Boolean(b)) => b,
-                    _ => panic!("Predicate expression evaluated to non-boolean value")
-                },
-                _ => true // let errors through the filter so they can be handled later
-            }
-        ))
+//        Box::new(self.input.scan(ctx).filter(move|t|
+//            match t {
+//                &Ok(ref tuple) => match ctx.evaluate(tuple, &self.schema, &self.expr) {
+//                    Ok(Value::Boolean(b)) => b,
+//                    _ => panic!("Predicate expression evaluated to non-boolean value")
+//                },
+//                _ => true // let errors through the filter so they can be handled later
+//            }
+//        ))
+        unimplemented!()
     }
 
     fn schema<'a>(&'a self) -> &'a Schema {
@@ -182,11 +183,13 @@ impl SimpleRelation for SortRelation {
                         let a_value = ctx.evaluate(a, &self.schema, expr).unwrap();
                         let b_value = ctx.evaluate(b, &self.schema, expr).unwrap();
 
-                        if a_value < b_value {
-                            return if asc { Less } else { Greater };
-                        } else if a_value > b_value {
-                            return if asc { Greater } else { Less };
-                        }
+//                        if a_value < b_value {
+//                            return if asc { Less } else { Greater };
+//                        } else if a_value > b_value {
+//                            return if asc { Greater } else { Less };
+//                        }
+
+                        unimplemented!()
                     },
                     _ => panic!("wrong expression type for sort")
                 }
@@ -242,7 +245,7 @@ impl SimpleRelation for LimitRelation {
 }
 
 /// Execution plans are sent to worker nodes for execution
-#[derive(Debug,Clone,Serialize,Deserialize)]
+#[derive(Debug,Clone)]
 pub enum ExecutionPlan {
     /// Run a query and return the results to the client
     Interactive { plan: Box<LogicalPlan> },
@@ -425,40 +428,41 @@ impl ExecutionContext {
     }
 
     /// Evaluate a relational expression against a tuple
-    pub fn evaluate(&self, row: &Row, schema: &Schema, expr: &Expr) -> Result<Value, Box<ExecutionError>> {
-        match expr {
-            &Expr::Binary { ref left, ref op, ref right } => {
-                let left_value = self.evaluate(row, schema, left)?;
-                let right_value = self.evaluate(row, schema, right)?;
-                match op {
-                    &Operator::Eq => Ok(Value::Boolean(left_value == right_value)),
-                    &Operator::NotEq => Ok(Value::Boolean(left_value != right_value)),
-                    &Operator::Lt => Ok(Value::Boolean(left_value < right_value)),
-                    &Operator::LtEq => Ok(Value::Boolean(left_value <= right_value)),
-                    &Operator::Gt => Ok(Value::Boolean(left_value > right_value)),
-                    &Operator::GtEq => Ok(Value::Boolean(left_value >= right_value)),
-                    _ => unimplemented!()
-                }
-            },
-            &Expr::TupleValue(index) => Ok(row.values[index].clone()),
-            &Expr::Literal(ref value) => Ok(value.clone()),
-            &Expr::Sort { ref expr, .. } => self.evaluate(row, schema, expr),
-            &Expr::ScalarFunction { ref name, ref args } => {
-
-                // evaluate the arguments to the function
-                let arg_values : Vec<Value> = args.iter()
-                    .map(|a| self.evaluate(row, schema, &a))
-                    .collect::<Result<Vec<Value>, Box<ExecutionError>>>()?;
-
-                let func = self.load_function_impl(name.as_ref())?;
-
-                match func.execute(arg_values) {
-                    Ok(value) => Ok(value),
-                    Err(e) => Err(Box::new(ExecutionError::Custom(
-                        format!("Function returned error {:?}", e))))
-                }
-            }
-        }
+    pub fn evaluate(&self, row: &Row, schema: &Schema, expr: &Expr) -> Result<Box<Value>, Box<ExecutionError>> {
+        unimplemented!()
+//        match expr {
+//            &Expr::Binary { ref left, ref op, ref right } => {
+//                let left_value = self.evaluate(row, schema, left)?;
+//                let right_value = self.evaluate(row, schema, right)?;
+//                match op {
+//                    &Operator::Eq => Ok(Value::Boolean(left_value == right_value)),
+//                    &Operator::NotEq => Ok(Value::Boolean(left_value != right_value)),
+//                    &Operator::Lt => Ok(Value::Boolean(left_value < right_value)),
+//                    &Operator::LtEq => Ok(Value::Boolean(left_value <= right_value)),
+//                    &Operator::Gt => Ok(Value::Boolean(left_value > right_value)),
+//                    &Operator::GtEq => Ok(Value::Boolean(left_value >= right_value)),
+//                    _ => unimplemented!()
+//                }
+//            },
+//            &Expr::TupleValue(index) => Ok(row.values[index].clone()),
+//            &Expr::Literal(ref value) => Ok(value.clone()),
+//            &Expr::Sort { ref expr, .. } => self.evaluate(row, schema, expr),
+//            &Expr::ScalarFunction { ref name, ref args } => {
+//
+//                // evaluate the arguments to the function
+//                let arg_values : Vec<Value> = args.iter()
+//                    .map(|a| self.evaluate(row, schema, &a))
+//                    .collect::<Result<Vec<Value>, Box<ExecutionError>>>()?;
+//
+//                let func = self.load_function_impl(name.as_ref())?;
+//
+//                match func.execute(arg_values) {
+//                    Ok(value) => Ok(value),
+//                    Err(e) => Err(Box::new(ExecutionError::Custom(
+//                        format!("Function returned error {:?}", e))))
+//                }
+//            }
+//        }
 
     }
 
@@ -482,18 +486,7 @@ impl ExecutionContext {
 
 }
 
-type CompiledExpr =  Box<Fn(&Row)-> Result<Value, Box<ExecutionError>>>;
-
-//TODO: this ugliness is needed until Value becomes a trait
-fn add(a: Value, b: Value) -> Value {
-    match a {
-        Value::UnsignedLong(aa) => match b {
-            Value::UnsignedLong(bb) => Value::UnsignedLong(aa+bb),
-            _ => unimplemented!()
-        },
-        _ => unimplemented!()
-    }
-}
+type CompiledExpr =  Box<Fn(&Row)-> Result<Box<Value>, Box<ExecutionError>>>;
 
 pub fn compile_expr(expr: Expr) -> Result<CompiledExpr, Box<ExecutionError>> {
     match expr {
@@ -504,7 +497,7 @@ pub fn compile_expr(expr: Expr) -> Result<CompiledExpr, Box<ExecutionError>> {
             let l = compile_expr(left.as_ref().clone())?;
             let r = compile_expr(right.as_ref().clone())?;
             match op {
-                &Operator::Plus => Ok(Box::new(move |ref row| Ok(add(l(&row)?, r(&row)?)))),
+                //&Operator::Eq => Ok(Box::new(move |ref row| Ok(l(&row)? == r(&row)?))),
                 _ => unimplemented!()
             }
         }

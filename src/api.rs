@@ -12,13 +12,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use super::rel::*;
+use rel::*;
 
 /// Scalar function. User-defined implementations will be dynamically loaded at runtime.
 pub trait ScalarFunction {
     fn name(&self) -> String;
     fn args(&self) -> Vec<Field>;
     fn return_type(&self) -> DataType;
-    fn execute(&self, args: Vec<Value>) -> Result<Value,Box<String>>;
+    fn execute(&self, args: Vec<&Value>) -> Result<Box<Value>,Box<String>>;
 }
 

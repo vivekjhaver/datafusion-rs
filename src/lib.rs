@@ -21,7 +21,8 @@ pub mod sqltorel;
 pub mod functions;
 pub mod exec;
 
-extern crate serde;
+extern crate erased_serde;
+
 extern crate serde_json;
 
 #[macro_use]

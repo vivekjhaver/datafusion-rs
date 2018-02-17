@@ -11,15 +11,16 @@ impl ScalarFunction for STPointFunc {
     }
 
 
-    fn execute(&self, args: Vec<Value>) -> Result<Value,Box<String>> {
+    fn execute(&self, args: Vec<&Value>) -> Result<Box<Value>,Box<String>> {
         if args.len() != 2 {
             return Err(Box::new("Wrong argument count for ST_Point".to_string()))
         }
-        match (&args[0], &args[1]) {
-            (&Value::Double(lat), &Value::Double(lng)) => Ok(Value::ComplexValue(
-                vec![Value::Double(lat), Value::Double(lng)])),
-            _ => Err(Box::new("Unsupported type for ST_Point".to_string()))
-        }
+//        match (&args[0], &args[1]) {
+//            (&Value::Double(lat), &Value::Double(lng)) => Ok(Value::ComplexValue(
+//                vec![Value::Double(lat), Value::Double(lng)])),
+//            _ => Err(Box::new("Unsupported type for ST_Point".to_string()))
+//        }
+        unimplemented!()
     }
 
     fn args(&self) -> Vec<Field> {
@@ -46,19 +47,20 @@ impl ScalarFunction for STAsText {
         "ST_AsText".to_string()
     }
 
-    fn execute(&self, args: Vec<Value>) -> Result<Value,Box<String>> {
+    fn execute(&self, args: Vec<&Value>) -> Result<Box<Value>,Box<String>> {
         if args.len() != 1 {
             return Err(Box::new("Wrong argument count for ST_AsText".to_string()))
         }
-        match &args[0] {
-            &Value::ComplexValue(ref fields) => match (&fields[0], &fields[1]) {
-                (&Value::Double(lat), &Value::Double(lon)) => {
-                    Ok(Value::String(format!("POINT ({} {})", lat, lon)))
-                },
-                _ => Err(Box::new("Unsupported type for ST_AsText".to_string()))
-            },
-            _ => Err(Box::new("Unsupported type for ST_AsText".to_string()))
-        }
+        unimplemented!()
+//        match &args[0] {
+//            &Value::ComplexValue(ref fields) => match (&fields[0], &fields[1]) {
+//                (&Value::Double(lat), &Value::Double(lon)) => {
+//                    Ok(Value::String(format!("POINT ({} {})", lat, lon)))
+//                },
+//                _ => Err(Box::new("Unsupported type for ST_AsText".to_string()))
+//            },
+//            _ => Err(Box::new("Unsupported type for ST_AsText".to_string()))
+//        }
     }
 
     fn args(&self) -> Vec<Field> {

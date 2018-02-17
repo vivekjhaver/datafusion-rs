@@ -25,8 +25,8 @@ extern crate etcd;
 extern crate futures;
 extern crate futures_timer;
 extern crate hyper;
-extern crate serde;
-extern crate serde_json;
+//extern crate serde;
+//extern crate serde_json;
 extern crate tokio_core;
 extern crate uuid;
 
@@ -34,6 +34,7 @@ use clap::{Arg, App};
 use etcd::Client;
 use etcd::kv;
 use datafusion::exec::*;
+use datafusion::rel::*;
 use futures::future::{ok, loop_fn, Future, Loop};
 use futures::Stream;
 use hyper::{Method, StatusCode};
@@ -214,8 +215,12 @@ impl Service for Worker {
                         //TODO: should stream results to client, not build a result set in memory
                         //TODO: decide on a more appropriate format to return than csv
                         //TODO: should not create a new execution context each time
+                        //let plan = serde_json::from_str(&json);
+                        let plan : Result<ExecutionPlan, ExecutionError> = Ok(ExecutionPlan::Interactive {
+                            plan: Box::new(LogicalPlan::EmptyRelation)
+                        });
 
-                        ok(match serde_json::from_str(&json) {
+                        ok(match plan {
                             Ok(plan) => {
                                 //println!("Plan: {:?}", plan);
 

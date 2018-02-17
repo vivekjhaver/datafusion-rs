@@ -12,11 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::cmp::{Ordering, PartialOrd};
+use std::fmt::Debug;
+use erased_serde::*;
 
 /// The data types supported by this database. Currently just u64 and string but others
 /// will be added later, including complex types
-#[derive(Debug,Clone,Serialize,Deserialize)]
+#[derive(Debug,Clone)]
 pub enum DataType {
     UnsignedLong,
     String,
@@ -25,7 +26,7 @@ pub enum DataType {
 }
 
 /// Definition of a column in a relation (data set).
-#[derive(Debug,Clone,Serialize,Deserialize)]
+#[derive(Debug,Clone)]
 pub struct Field {
     pub name: String,
     pub data_type: DataType,
@@ -46,14 +47,14 @@ impl Field {
     }
 }
 
-#[derive(Debug,Clone,Serialize,Deserialize)]
+#[derive(Debug,Clone)]
 pub struct ComplexType {
     name: String,
     fields: Vec<Field>
 }
 
 /// Definition of a relation (data set) consisting of one or more columns.
-#[derive(Debug,Clone,Serialize,Deserialize)]
+#[derive(Debug,Clone)]
 pub struct Schema {
     pub columns: Vec<Field>
 }
@@ -81,7 +82,7 @@ impl Schema {
 
 }
 
-#[derive(Debug,Clone,Serialize,Deserialize)]
+#[derive(Debug,Clone)]
 pub struct FunctionMeta {
     pub name: String,
     pub args: Vec<Field>,
@@ -94,14 +95,14 @@ pub struct FunctionMeta {
 //    fn get_value(&self, index: usize) -> Result<Value, Box<Error>>;
 //}
 
-#[derive(Debug,Clone,PartialEq)]
+#[derive(Debug)]
 pub struct Row {
-    pub values: Vec<Value>
+    pub values: Vec<Box<Value>> //TODO: should be references
 }
 
 impl Row {
 
-    pub fn new(v: Vec<Value>) -> Self {
+    pub fn new(v: Vec<Box<Value>>) -> Self {
         Row { values: v }
     }
 
@@ -116,70 +117,64 @@ impl Row {
 }
 
 /// Marker trait for the values
-//trait Value: Clone + Debug {}
+pub trait Value: Debug {
+    //fn add(other: &Value)
+    fn to_string(&self) -> String;
+}
+
+impl Clone for Box<Value> {
+    fn clone(&self) -> Self {
+        unimplemented!()
+    }
+
+    fn clone_from(&mut self, source: &Self) {
+        unimplemented!()
+    }
+}
 //
 //impl Value for f64 {}
 //impl<'a> Value for Str<'a> {}
 
 /// Value holder for all supported data types
-#[derive(Debug,Clone,PartialEq,Serialize,Deserialize)]
-pub enum Value {
-    UnsignedLong(u64),
-    String(String),
-    Boolean(bool),
-    Double(f64),
-    ComplexValue(Vec<Value>)
+//#[derive(Debug,Clone,PartialEq)]
+//pub enum Value {
+//    UnsignedLong(u64),
+//    String(String),
+//    Boolean(bool),
+//    Double(f64),
+//    ComplexValue(Vec<Value>)
+//}
+
+#[derive(Debug, Clone)]
+struct ComplexValue {
+
 }
 
-impl PartialOrd for Value {
-    fn partial_cmp(&self, other: &Value) -> Option<Ordering> {
-
-        //TODO: implement all type coercion rules
-
-        match self {
-            &Value::Double(l) => match other {
-                &Value::Double(r) => l.partial_cmp(&r),
-                &Value::UnsignedLong(r) => l.partial_cmp(&(r as f64)),
-                _ => unimplemented!("type coercion rules missing")
-            },
-            &Value::UnsignedLong(l) => match other {
-                &Value::Double(r) => (l as f64).partial_cmp(&r),
-                &Value::UnsignedLong(r) => l.partial_cmp(&r),
-                _ => unimplemented!("type coercion rules missing")
-            },
-            &Value::String(ref l) => match other {
-                &Value::String(ref r) => l.partial_cmp(r),
-                _ => unimplemented!("type coercion rules missing")
-            },
-            &Value::ComplexValue(_) => None,
-            _ => unimplemented!("type coercion rules missing")
-        }
-
-    }
-}
-
-
-
-impl Value {
-
+impl Value for u64 {
     fn to_string(&self) -> String {
-        match self {
-            &Value::UnsignedLong(l) => l.to_string(),
-            &Value::Double(d) => d.to_string(),
-            &Value::Boolean(b) => b.to_string(),
-            &Value::String(ref s) => s.clone(),
-            &Value::ComplexValue(ref v) => {
-                let s : Vec<String> = v.iter()
-                    .map(|v| v.to_string())
-                    .collect();
-                s.join(",")
-            }
-        }
+        unimplemented!()
     }
-
 }
 
-#[derive(Debug,Clone,Serialize,Deserialize)]
+impl Value for f64 {
+    fn to_string(&self) -> String {
+        unimplemented!()
+    }
+}
+
+impl Value for String {
+    fn to_string(&self) -> String {
+        unimplemented!()
+    }
+}
+
+impl Value for ComplexValue {
+    fn to_string(&self) -> String {
+        unimplemented!()
+    }
+}
+
+#[derive(Debug,Clone)]
 pub enum Operator {
     Eq,
     NotEq,
@@ -191,12 +186,12 @@ pub enum Operator {
 }
 
 /// Relation Expression
-#[derive(Debug,Clone,Serialize, Deserialize)]
+#[derive(Debug,Clone)]
 pub enum Expr {
     /// index into a value within the tuple
     TupleValue(usize),
     /// literal value
-    Literal(Value),
+    Literal(Box<Value>),
     /// binary expression e.g. "age > 21"
     Binary { left: Box<Expr>, op: Operator, right: Box<Expr> },
     /// sort expression
@@ -234,7 +229,7 @@ impl Expr {
 }
 
 /// Relations
-#[derive(Debug,Clone,Serialize, Deserialize)]
+#[derive(Debug,Clone)]
 pub enum LogicalPlan {
     Limit { limit: usize, input: Box<LogicalPlan>, schema: Schema },
     Projection { expr: Vec<Expr>, input: Box<LogicalPlan>, schema: Schema },
@@ -266,7 +261,6 @@ mod tests {
     use super::*;
     use super::LogicalPlan::*;
     use super::Expr::*;
-    use super::Value::*;
     extern crate serde_json;
 
     #[test]

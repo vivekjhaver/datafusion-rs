@@ -4,8 +4,8 @@ extern crate etcd;
 extern crate futures;
 extern crate hyper;
 extern crate rprompt;
-extern crate serde;
-extern crate serde_json;
+//extern crate serde;
+//extern crate serde_json;
 extern crate tokio_core;
 
 use std::str;
@@ -141,36 +141,38 @@ impl Console {
         let mut core = Core::new().unwrap();
         let client = Client::new(&core.handle());
 
-        let uri = self.worker_addr.parse().unwrap();
+        let uri: String = self.worker_addr.parse().unwrap();
 
         match self.ctx.create_logical_plan(&sql) {
             Ok(logical_plan) => {
                 let execution_plan = ExecutionPlan::Interactive { plan: logical_plan };
 
                 // serialize plan to JSON
-                match serde_json::to_string(&execution_plan) {
-                    Ok(json) => {
-                        let mut req = Request::new(Method::Post, uri);
-                        req.headers_mut().set(ContentType::json());
-                        req.headers_mut().set(ContentLength(json.len() as u64));
-                        req.set_body(json);
+//                match serde_json::to_string(&execution_plan) {
+//                    Ok(json) => {
+//                        let mut req = Request::new(Method::Post, uri);
+//                        req.headers_mut().set(ContentType::json());
+//                        req.headers_mut().set(ContentLength(json.len() as u64));
+//                        req.set_body(json);
+//
+//                        let post = client.request(req).and_then(|res| {
+//                            //println!("POST: {}", res.status());
+//                            res.body().concat2()
+//                        });
+//
+//                        match core.run(post) {
+//                            Ok(result) => {
+//                                //TODO: show response as formatted table
+//                                let result = str::from_utf8(&result).unwrap();
+//                                println!("{}", result);
+//                            }
+//                            Err(e) => println!("Failed to serialize plan: {:?}", e)
+//                        }
+//                    }
+//                    Err(e) => println!("Failed to serialize plan: {:?}", e)
+//                }
 
-                        let post = client.request(req).and_then(|res| {
-                            //println!("POST: {}", res.status());
-                            res.body().concat2()
-                        });
-
-                        match core.run(post) {
-                            Ok(result) => {
-                                //TODO: show response as formatted table
-                                let result = str::from_utf8(&result).unwrap();
-                                println!("{}", result);
-                            }
-                            Err(e) => println!("Failed to serialize plan: {:?}", e)
-                        }
-                    }
-                    Err(e) => println!("Failed to serialize plan: {:?}", e)
-                }
+                unimplemented!()
             }
             Err(e) => println!("Query failed: {:?}", e)
         }
