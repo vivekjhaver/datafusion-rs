@@ -36,7 +36,7 @@ fn main() {
 
     // filter on lat > 52.0
     let lat = df1.col("lat").unwrap();
-    let value = Expr::Literal(Value::Double(52.0));
+    let value = Expr::Literal(Box::new(52.0));
     let df2 = df1.filter(lat.gt(&value)).unwrap();
     println!("df2: {}", df1.schema().to_string());
 

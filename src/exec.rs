@@ -633,29 +633,31 @@ mod tests {
     #[test]
     fn test_compile_literal_expr() {
 
-        let lit_fn_1 = compile_expr(Expr::Literal(Value::UnsignedLong(1234))).unwrap();
-        let lit_fn_2 = compile_expr(Expr::Literal(Value::UnsignedLong(4321))).unwrap();
+        let lit_fn_1 = compile_expr(Expr::Literal(Box::new(1234_u64))).unwrap();
+        let lit_fn_2 = compile_expr(Expr::Literal(Box::new(4321_u64))).unwrap();
 
         let row = Row::new(vec![]);
 
-        assert_eq!(Value::UnsignedLong(1234), lit_fn_1(&row).unwrap());
-        assert_eq!(Value::UnsignedLong(4321), lit_fn_2(&row).unwrap());
+        unimplemented!()
+//        assert_eq!(Box::new(1234_u64) as Box<Value>, lit_fn_1(&row).unwrap());
+//        assert_eq!(Box::new(4321_u64) as Box<Value>, lit_fn_2(&row).unwrap());
     }
 
     #[test]
     fn test_compile_binary_expr() {
 
         let expr = Expr::Binary {
-            left: Box::new(Expr::Literal(Value::UnsignedLong(1234))),
+            left: Box::new(Expr::Literal(Box::new(123_u64))),
             op: Operator::Plus,
-            right: Box::new(Expr::Literal(Value::UnsignedLong(4321)))
+            right: Box::new(Expr::Literal(Box::new(4321_u64)))
         };
 
         let compiled_expr = compile_expr(expr).unwrap();
 
         let row = Row::new(vec![]);
 
-        assert_eq!(Value::UnsignedLong(5555), compiled_expr(&row).unwrap());
+        unimplemented!()
+//        assert_eq!(5555_u64, compiled_expr(&row).unwrap());
     }
 
     #[test]

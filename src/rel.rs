@@ -278,7 +278,7 @@ mod tests {
         let filter_expr = Binary {
             left: Box::new(TupleValue(0)),
             op: Operator::Eq,
-            right: Box::new(Literal(UnsignedLong(2)))
+            right: Box::new(Literal(Box::new(2_u64)))
         };
 
         let plan = Selection {
@@ -288,8 +288,10 @@ mod tests {
 
         };
 
-        let s = serde_json::to_string(&plan).unwrap();
-        println!("serialized: {}", s);
+        unimplemented!()
+
+//        let s = serde_json::to_string(&plan).unwrap();
+//        println!("serialized: {}", s);
     }
 
 }
