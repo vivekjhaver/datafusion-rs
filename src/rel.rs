@@ -12,7 +12,49 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use super::types::*;
 
+/// Expressions
+#[derive(Debug)]
+pub enum Expr {
+    /// index into a value within the tuple
+    TupleValue(usize),
+    /// literal value
+    Literal(Box<Value>),
+    /// binary expression e.g. "age > 21"
+    Binary { left: Box<Expr>, op: Operator, right: Box<Expr> },
+    /// sort expression
+    Sort { expr: Box<Expr>, asc: bool },
+    /// scalar function
+    ScalarFunction { name: String, args: Vec<Expr> }
+}
+
+#[derive(Debug,Clone)]
+pub enum Operator {
+    Eq,
+    NotEq,
+    Lt,
+    LtEq,
+    Gt,
+    GtEq,
+    Plus,
+    Minus,
+    Mult,
+    Divide,
+    Modulus
+}
+
+///// Relations
+//#[derive(Debug)]
+//pub enum LogicalPlan {
+//    Limit { limit: usize, input: Box<LogicalPlan>, schema: Schema },
+//    Projection { expr: Vec<Expr>, input: Box<LogicalPlan>, schema: Schema },
+//    Selection { expr: Expr, input: Box<LogicalPlan>, schema: Schema },
+//    Sort { expr: Vec<Expr>, input: Box<LogicalPlan>, schema: Schema },
+//    TableScan { schema_name: String, table_name: String, schema: Schema },
+//    CsvFile { filename: String, schema: Schema },
+//    EmptyRelation
+//}
 
 
 //
@@ -29,39 +71,12 @@
 //    ComplexType(Vec<Field>)
 //}
 //
-///// Definition of a column in a relation (data set).
-//#[derive(Debug,Clone)]
-//pub struct Field {
-//    pub name: String,
-//    pub data_type: DataType,
-//    pub nullable: bool
-//}
-//
-//impl Field {
-//    pub fn new(name: &str, data_type: DataType, nullable: bool) -> Self {
-//        Field {
-//            name: name.to_string(),
-//            data_type: data_type,
-//            nullable: nullable
-//        }
-//    }
-//
-//    pub fn to_string(&self) -> String {
-//        format!("{}: {:?}", self.name, self.data_type)
-//    }
-//}
-//
 //#[derive(Debug,Clone)]
 //pub struct ComplexType {
 //    name: String,
 //    fields: Vec<Field>
 //}
 //
-///// Definition of a relation (data set) consisting of one or more columns.
-//#[derive(Debug,Clone)]
-//pub struct Schema {
-//    pub columns: Vec<Field>
-//}
 //
 //impl Schema {
 //
@@ -193,31 +208,7 @@
 //    }
 //}
 //
-//#[derive(Debug,Clone)]
-//pub enum Operator {
-//    Eq,
-//    NotEq,
-//    Lt,
-//    LtEq,
-//    Gt,
-//    GtEq,
-//    Plus
-//}
 //
-///// Relation Expression
-//#[derive(Debug)]
-//pub enum Expr {
-//    /// index into a value within the tuple
-//    TupleValue(usize),
-//    /// literal value
-//    Literal(Box<Value>),
-//    /// binary expression e.g. "age > 21"
-//    Binary { left: Box<Expr>, op: Operator, right: Box<Expr> },
-//    /// sort expression
-//    Sort { expr: Box<Expr>, asc: bool },
-//    /// scalar function
-//    ScalarFunction { name: String, args: Vec<Expr> }
-//}
 //
 //impl Expr {
 //
@@ -247,17 +238,6 @@
 //
 //}
 //
-///// Relations
-//#[derive(Debug)]
-//pub enum LogicalPlan {
-//    Limit { limit: usize, input: Box<LogicalPlan>, schema: Schema },
-//    Projection { expr: Vec<Expr>, input: Box<LogicalPlan>, schema: Schema },
-//    Selection { expr: Expr, input: Box<LogicalPlan>, schema: Schema },
-//    Sort { expr: Vec<Expr>, input: Box<LogicalPlan>, schema: Schema },
-//    TableScan { schema_name: String, table_name: String, schema: Schema },
-//    CsvFile { filename: String, schema: Schema },
-//    EmptyRelation
-//}
 //
 //impl LogicalPlan {
 //

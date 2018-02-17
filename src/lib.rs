@@ -15,9 +15,9 @@
 pub mod types;
 
 //pub mod api;
-//pub mod sql;
-//pub mod parser;
-//pub mod rel;
+pub mod sql;
+pub mod parser;
+pub mod rel;
 //pub mod dataframe;
 //pub mod sqltorel;
 //pub mod functions;

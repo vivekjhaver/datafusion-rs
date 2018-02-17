@@ -14,20 +14,48 @@
 
 use std::fmt::Debug;
 
-trait Value : Debug {
+pub trait Value : Debug {
 }
 
-trait DataType {
+pub trait DataType {
     fn name() -> &'static str;
-    fn value_from_binary(&self, bytes: &[u8]) -> Box<Value>;
+    fn decode(&self, bytes: &[u8]) -> Box<Value>;
 }
+
+/// Definition of a column in a relation (data set).
+//#[derive(Debug,Clone)]
+//pub struct Field {
+//    pub name: String,
+//    pub data_type: Box<DataType>,
+//    pub nullable: bool
+//}
+//
+//impl Field {
+//    pub fn new(name: &str, data_type: Box<DataType>, nullable: bool) -> Self {
+//        Field {
+//            name: name.to_string(),
+//            data_type: data_type,
+//            nullable: nullable
+//        }
+//    }
+//
+//    pub fn to_string(&self) -> String {
+//        format!("{}: {:?}", self.name, self.data_type)
+//    }
+//}
+
+
+/// Definition of a relation (data set) consisting of one or more columns.
+//#[derive(Debug,Clone)]
+//pub struct Schema {
+//    pub columns: Vec<Field>
+//}
 
 trait Row<'a> {
     fn value(i: usize) -> &'a Value;
 }
 
 impl Value for f64 {
-
 }
 
 //impl Clone for Box<f64> {
@@ -42,7 +70,7 @@ impl DataType for f64 {
         "f64"
     }
 
-    fn value_from_binary(&self, bytes: &[u8]) -> Box<Value> {
+    fn decode(&self, bytes: &[u8]) -> Box<Value> {
         //TODO: parse bytes
         let n = 12.3;
         Box::new(n)
