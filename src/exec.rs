@@ -1,66 +1,86 @@
-//// Copyright 2018 Grove Enterprises LLC
-////
-//// Licensed under the Apache License, Version 2.0 (the "License");
-//// you may not use this file except in compliance with the License.
-//// You may obtain a copy of the License at
-////
-//// http://www.apache.org/licenses/LICENSE-2.0
-////
-//// Unless required by applicable law or agreed to in writing, software
-//// distributed under the License is distributed on an "AS IS" BASIS,
-//// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-//// See the License for the specific language governing permissions and
-//// limitations under the License.
+// Copyright 2018 Grove Enterprises LLC
 //
-//use std::cmp::Ordering::*;
-//use std::collections::HashMap;
-//use std::io::Error;
-//use std::io::BufReader;
-//use std::io::prelude::*;
-//use std::iter::Iterator;
-//use std::fs::File;
-//use std::string::String;
-//use std::convert::*;
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
 //
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+use std::cmp::Ordering::*;
+use std::collections::HashMap;
+use std::io::Error;
+use std::io::BufReader;
+use std::io::prelude::*;
+use std::iter::Iterator;
+use std::fs::File;
+use std::string::String;
+use std::convert::*;
+
 //extern crate csv;
-//
 //use super::csv::StringRecord;
-//
+
 //use super::api::*;
-//use super::rel::*;
-//use super::sql::ASTNode::*;
-//use super::sqltorel::*;
-//use super::parser::*;
+use super::rel::*;
+use super::sql::ASTNode::*;
+use super::sqltorel::*;
+use super::parser::*;
+use super::types::*;
 //use super::dataframe::*;
 //use super::functions::math::*;
 //use super::functions::geospatial::*;
-//
-//#[derive(Debug)]
-//pub enum ExecutionError {
-//    IoError(Error),
-//    CsvError(csv::Error),
-//    ParserError(ParserError),
-//    Custom(String)
-//}
-//
-//impl From<Error> for ExecutionError {
-//    fn from(e: Error) -> Self {
-//        ExecutionError::IoError(e)
-//    }
-//}
-//
-//impl From<String> for ExecutionError {
-//    fn from(e: String) -> Self {
-//        ExecutionError::Custom(e)
-//    }
-//}
-//
-//impl From<ParserError> for ExecutionError {
-//    fn from(e: ParserError) -> Self {
-//        ExecutionError::ParserError(e)
-//    }
-//}
-//
+
+#[derive(Debug)]
+pub enum ExecutionError {
+    IoError(Error),
+    //CsvError(csv::Error),
+    ParserError(ParserError),
+    Custom(String)
+}
+
+impl From<Error> for ExecutionError {
+    fn from(e: Error) -> Self {
+        ExecutionError::IoError(e)
+    }
+}
+
+impl From<String> for ExecutionError {
+    fn from(e: String) -> Self {
+        ExecutionError::Custom(e)
+    }
+}
+
+impl From<ParserError> for ExecutionError {
+    fn from(e: ParserError) -> Self {
+        ExecutionError::ParserError(e)
+    }
+}
+
+type CompiledExpr =  Box<Fn(&Row)-> Result<Box<RuntimeValue>, Box<ExecutionError>>>;
+
+pub fn compile_expr(expr: &Expr) -> Result<CompiledExpr, Box<ExecutionError>> {
+    match expr {
+        &Expr::Literal(ref lit) => {
+            Ok(Box::new(move |&_| Ok(Box::new(1.2_f64))))
+        },
+        &Expr::Binary { ref left, ref op, ref right } => {
+            let l = compile_expr(left)?;
+            let r = compile_expr(right)?;
+            match op {
+                &Operator::Eq => Ok(Box::new(move |row| Ok(l(row)? == r(row)?))),
+                _ => unimplemented!()
+            }
+        }
+        _ => unimplemented!()
+    }
+}
+
+
 ///// Represents a csv file with a known schema
 //#[derive(Debug)]
 //pub struct CsvRelation {
@@ -489,26 +509,7 @@
 //
 //}
 //
-//type CompiledExpr =  Box<Fn(&Row)-> Result<Box<Value>, Box<ExecutionError>>>;
 //
-//pub fn compile_expr(expr: Expr) -> Result<CompiledExpr, Box<ExecutionError>> {
-//    match expr {
-//        Expr::Literal(value) => {
-//            Ok(Box::new(move |&_| Ok(value.dupe())))
-//        },
-//        Expr::Binary { left, op, right } => {
-//            let l = compile_expr(*left)?;
-//            let r = compile_expr(*right)?;
-//            match op {
-//                //&Operator::Eq => Ok(Box::new(move |ref row| Ok(l(&row)? == r(&row)?))),
-//                _ => unimplemented!()
-//            }
-//        }
-//        _ => unimplemented!()
-//    }
-//}
-//
-///*
 //match expr {
 //&Expr::BinaryExpr { ref left, ref op, ref right } => {
 //    let left_value = self.evaluate(row, schema, left)?;

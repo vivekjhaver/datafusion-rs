@@ -18,10 +18,10 @@ pub mod types;
 pub mod sql;
 pub mod parser;
 pub mod rel;
+pub mod sqltorel;
 //pub mod dataframe;
-//pub mod sqltorel;
 //pub mod functions;
-//pub mod exec;
+pub mod exec;
 //
 //extern crate erased_serde;
 //

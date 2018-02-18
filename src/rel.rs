@@ -14,13 +14,23 @@
 
 use super::types::*;
 
+/// representation of literal value within a relational plan
+#[derive(Debug,Clone)]
+pub enum LiteralValue {
+    Double(f64),
+    Long(i64),
+    String(String),
+    Binary(Vec<u8>),
+    //Custom
+}
+
 /// Expressions
-#[derive(Debug)]
+#[derive(Debug,Clone)]
 pub enum Expr {
     /// index into a value within the tuple
     TupleValue(usize),
     /// literal value
-    Literal(Box<Value>),
+    Literal(LiteralValue),
     /// binary expression e.g. "age > 21"
     Binary { left: Box<Expr>, op: Operator, right: Box<Expr> },
     /// sort expression
@@ -44,62 +54,85 @@ pub enum Operator {
     Modulus
 }
 
-///// Relations
-//#[derive(Debug)]
-//pub enum LogicalPlan {
-//    Limit { limit: usize, input: Box<LogicalPlan>, schema: Schema },
-//    Projection { expr: Vec<Expr>, input: Box<LogicalPlan>, schema: Schema },
-//    Selection { expr: Expr, input: Box<LogicalPlan>, schema: Schema },
-//    Sort { expr: Vec<Expr>, input: Box<LogicalPlan>, schema: Schema },
-//    TableScan { schema_name: String, table_name: String, schema: Schema },
-//    CsvFile { filename: String, schema: Schema },
-//    EmptyRelation
-//}
+#[derive(Debug,Clone)]
+pub struct Field {
+    pub name: String,
+    pub data_type: String,
+    pub nullable: bool
+}
+
+impl Field {
+    pub fn new(name: &str, data_type: &str, nullable: bool) -> Self {
+        Field {
+            name: name.to_string(),
+            data_type: data_type.to_string(),
+            nullable: nullable
+        }
+    }
+
+    pub fn to_string(&self) -> String {
+        format!("{}: {:?}", self.name, self.data_type)
+    }
+}
+
+#[derive(Debug,Clone)]
+pub struct Schema {
+    pub columns: Vec<Field>
+
+}
+
+impl Schema {
+
+    /// create an empty tuple
+    pub fn empty() -> Self { Schema { columns: vec![] } }
+
+    pub fn new(columns: Vec<Field>) -> Self { Schema { columns: columns } }
+
+    /// look up a column by name and return a reference to the column along with it's index
+    pub fn column(&self, name: &str) -> Option<(usize, &Field)> {
+        self.columns.iter()
+            .enumerate()
+            .find(|&(_,c)| c.name == name)
+    }
+
+    pub fn to_string(&self) -> String {
+        let s : Vec<String> = self.columns.iter()
+            .map(|c| c.to_string())
+            .collect();
+        s.join(",")
+    }
+
+}
+
+/// Relations
+#[derive(Debug)]
+pub enum LogicalPlan {
+    Limit { limit: usize, input: Box<LogicalPlan>, schema: Schema },
+    Projection { expr: Vec<Expr>, input: Box<LogicalPlan>, schema: Schema },
+    Selection { expr: Expr, input: Box<LogicalPlan>, schema: Schema },
+    Sort { expr: Vec<Expr>, input: Box<LogicalPlan>, schema: Schema },
+    TableScan { schema_name: String, table_name: String, schema: Schema },
+    CsvFile { filename: String, schema: Schema },
+    EmptyRelation
+}
 
 
-//
-//use std::fmt::Debug;
-//use erased_serde::*;
-//
-///// The data types supported by this database. Currently just u64 and string but others
-///// will be added later, including complex types
-//#[derive(Debug,Clone)]
-//pub enum DataType {
-//    UnsignedLong,
-//    String,
-//    Double,
-//    ComplexType(Vec<Field>)
-//}
-//
-//#[derive(Debug,Clone)]
-//pub struct ComplexType {
-//    name: String,
-//    fields: Vec<Field>
-//}
-//
-//
-//impl Schema {
-//
-//    /// create an empty tuple
-//    pub fn empty() -> Self { Schema { columns: vec![] } }
-//
-//    pub fn new(columns: Vec<Field>) -> Self { Schema { columns: columns } }
-//
-//    /// look up a column by name and return a reference to the column along with it's index
-//    pub fn column(&self, name: &str) -> Option<(usize, &Field)> {
-//        self.columns.iter()
-//            .enumerate()
-//            .find(|&(_,c)| c.name == name)
-//    }
-//
-//    pub fn to_string(&self) -> String {
-//        let s : Vec<String> = self.columns.iter()
-//            .map(|c| c.to_string())
-//            .collect();
-//        s.join(",")
-//    }
-//
-//}
+impl LogicalPlan {
+
+    pub fn schema(&self) -> Schema {
+        match self {
+            &LogicalPlan::EmptyRelation => Schema::empty(),
+            &LogicalPlan::TableScan { ref schema, .. } => schema.clone(),
+            &LogicalPlan::CsvFile { ref schema, .. } => schema.clone(),
+            &LogicalPlan::Projection { ref schema, .. } => schema.clone(),
+            &LogicalPlan::Selection { ref schema, .. } => schema.clone(),
+            &LogicalPlan::Sort { ref schema, .. } => schema.clone(),
+            &LogicalPlan::Limit { ref schema, .. } => schema.clone(),
+        }
+    }
+}
+
+
 //
 //#[derive(Debug,Clone)]
 //pub struct FunctionMeta {
@@ -238,21 +271,7 @@ pub enum Operator {
 //
 //}
 //
-//
-//impl LogicalPlan {
-//
-//    pub fn schema(&self) -> Schema {
-//        match self {
-//            &LogicalPlan::EmptyRelation => Schema::empty(),
-//            &LogicalPlan::TableScan { ref schema, .. } => schema.clone(),
-//            &LogicalPlan::CsvFile { ref schema, .. } => schema.clone(),
-//            &LogicalPlan::Projection { ref schema, .. } => schema.clone(),
-//            &LogicalPlan::Selection { ref schema, .. } => schema.clone(),
-//            &LogicalPlan::Sort { ref schema, .. } => schema.clone(),
-//            &LogicalPlan::Limit { ref schema, .. } => schema.clone(),
-//        }
-//    }
-//}
+
 //
 //#[cfg(test)]
 //mod tests {

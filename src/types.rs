@@ -14,65 +14,49 @@
 
 use std::fmt::Debug;
 
-pub trait Value : Debug {
+pub trait RuntimeValue : Debug {
 }
 
-pub trait DataType {
-    fn name() -> &'static str;
-    fn decode(&self, bytes: &[u8]) -> Box<Value>;
-}
-
-/// Definition of a column in a relation (data set).
-//#[derive(Debug,Clone)]
-//pub struct Field {
-//    pub name: String,
-//    pub data_type: Box<DataType>,
-//    pub nullable: bool
+//pub trait RuntimeDataType : Debug {
+//    fn name(&self) -> &'static str;
+//    fn decode(&self, bytes: &[u8]) -> Box<Value>;
 //}
 //
-//impl Field {
-//    pub fn new(name: &str, data_type: Box<DataType>, nullable: bool) -> Self {
-//        Field {
-//            name: name.to_string(),
-//            data_type: data_type,
-//            nullable: nullable
-//        }
+pub trait Row<'a> {
+    fn value(&self, i: usize) -> &'a RuntimeValue;
+}
+//
+
+impl RuntimeValue for f64 {
+}
+
+impl RuntimeValue for i64 {
+}
+
+impl RuntimeValue for String {
+}
+
+struct Point {
+    x: f64,
+    y: f64
+}
+
+impl RuntimeValue for Point {
+
+}
+
+//
+//#[derive(Debug)]
+//pub struct Double {}
+//
+//impl RuntimeDataType for Double {
+//    fn name(&self) -> &'static str {
+//        "double"
 //    }
 //
-//    pub fn to_string(&self) -> String {
-//        format!("{}: {:?}", self.name, self.data_type)
+//    fn decode(&self, bytes: &[u8]) -> Box<Value> {
+//        //TODO: parse bytes
+//        let n = 12.3;
+//        Box::new(n)
 //    }
 //}
-
-
-/// Definition of a relation (data set) consisting of one or more columns.
-//#[derive(Debug,Clone)]
-//pub struct Schema {
-//    pub columns: Vec<Field>
-//}
-
-trait Row<'a> {
-    fn value(i: usize) -> &'a Value;
-}
-
-impl Value for f64 {
-}
-
-//impl Clone for Box<f64> {
-//    fn clone(&self) -> Self {
-//        Box::new(self)
-//    }
-//}
-
-
-impl DataType for f64 {
-    fn name() -> &'static str {
-        "f64"
-    }
-
-    fn decode(&self, bytes: &[u8]) -> Box<Value> {
-        //TODO: parse bytes
-        let n = 12.3;
-        Box::new(n)
-    }
-}
