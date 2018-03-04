@@ -134,6 +134,70 @@ pub fn compile_expr(ctx: &ExecutionContext, expr: &Expr) -> Result<CompiledExpr,
     }
 }
 
+enum Orientation { Row, Column }
+
+/// A simple collection of values
+trait Values {
+    fn get(&self, index: usize) -> &Value;
+}
+
+impl Values for Vec<Value> {
+    fn get(&self, index: usize) -> &Value {
+        &self[index]
+    }
+}
+
+/// A row or column-oriented batch of rows
+trait Batch {
+    fn orientation(&self) -> &Orientation;
+    fn row_count(&self) -> usize;
+    fn col_count(&self) -> usize;
+    fn row(&self, index: usize) -> &Values;
+    fn col(&self, index: usize) -> &Values;
+}
+
+/// naive implementation of a batch of data which can be either row or column-oriented .. later we
+/// can add highly optimized implementations of batch using proprietary memory structures or maybe
+/// integrate with Apache Arrow ?
+struct SimpleBatch {
+    orientation: Orientation,
+    data: Vec<Vec<Value>>
+}
+
+impl Batch for SimpleBatch {
+    fn orientation(&self) -> &Orientation {
+        &self.orientation
+    }
+
+    fn row_count(&self) -> usize {
+        match &self.orientation {
+            &Orientation::Row => self.data.len(),
+            &Orientation::Column => self.data[0].len()
+        }
+    }
+
+    fn col_count(&self) -> usize {
+        match &self.orientation {
+            &Orientation::Row => self.data[0].len(),
+            &Orientation::Column => self.data.len()
+        }
+    }
+
+    fn row(&self, index: usize) -> &Values {
+        match &self.orientation {
+            &Orientation::Row => &self.data[index],
+            &Orientation::Column => unimplemented!()
+        }
+    }
+
+    fn col(&self, index: usize) -> &Values {
+        match &self.orientation {
+            &Orientation::Row => unimplemented!(),
+            &Orientation::Column => &self.data[index]
+        }
+    }
+}
+
 /// Represents a csv file with a known schema
 #[derive(Debug)]
 pub struct CsvRelation {
@@ -820,6 +884,29 @@ mod tests {
         ctx.write(df,"_uk_cities_wkt.csv").unwrap();
 
         //TODO: check that generated file has expected contents
+    }
+
+    #[test]
+    fn row_batch() {
+        let batch = SimpleBatch { orientation: Orientation::Row,
+        data: vec![
+            vec![Value::UnsignedLong(1), Value::String("aaa".to_string()), Value::Double(1.2)],
+            vec![Value::UnsignedLong(2), Value::String("bbb".to_string()), Value::Double(2.4)],
+        ]};
+        assert_eq!(2, batch.row_count());
+        assert_eq!(3, batch.col_count());
+    }
+
+    #[test]
+    fn column_batch() {
+        let batch = SimpleBatch { orientation: Orientation::Column,
+            data: vec![
+                vec![Value::UnsignedLong(1), Value::UnsignedLong(2)],
+                vec![Value::String("aaa".to_string()), Value::String("bbb".to_string())],
+                vec![Value::Double(1.2), Value::Double(2.4)],
+            ]};
+        assert_eq!(2, batch.row_count());
+        assert_eq!(3, batch.col_count());
     }
 
     fn create_context() -> ExecutionContext {
